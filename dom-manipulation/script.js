@@ -141,4 +141,6 @@ window.onload = function() {
     }
 
     document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+    document.getElementById('exportBtn').addEventListener('click', exportToJsonFile); 
+    document.getElementById('importFile').addEventListener('change', importFromJsonFile);
 }
