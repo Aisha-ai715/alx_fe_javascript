@@ -52,3 +52,93 @@ function createAddQuoteForm() {
 
     document.body.appendChild(Container);
 }
+
+function saveQuotesToLocalStorage() {
+    localStorage.setItem('quotes', JSON.stringify(Amazingquotes));
+}
+
+function loadQuotesFromLocalStorage() {
+    const storedQuotes = localStorage.getItem('quotes');
+    if (storedQuotes) {
+        Amazingquotes = JSON.parse(storedQuotes);
+    }
+}
+
+function addQuote() {
+    const textInput = document.getElementById('newQuoteText');
+    const categoryInput = document.getElementById('newQuoteCategory');
+    const text = textInput.value.trim();
+    const category = categoryInput.value.trim();
+
+    if (text && category) {
+        Amazingquotes.push({ text, category });
+        saveQuotesToLocalStorage(); 
+        textInput.value = '';
+        categoryInput.value = '';
+        showRandomQuote();
+    } else {
+        alert('Please enter a quote and a category.');
+    }
+}
+
+window.onload = function() {
+    loadQuotesFromLocalStorage();
+};
+
+//
+function saveQuotesToLocalStorage() {
+    localStorage.setItem('quotes', JSON.stringify(Amazingquotes));
+}
+
+function loadQuotesFromLocalStorage() {
+    const storedQuotes = localStorage.getItem('quotes');
+    if (storedQuotes) {
+        Amazingquotes = JSON.parse(storedQuotes);
+    }
+}
+
+function exportQuotes() {
+    const blob = new Blob([JSON.stringify(Amazingquotes, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'quotes.json';
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function importFromJsonFile(event) {
+    const fileReader = new FileReader();
+    fileReader.onload = function(e) {
+        try {
+            const importedQuotes = JSON.parse(e.target.result);
+            if (Array.isArray(importedQuotes)) {
+                Amazingquotes.push(...importedQuotes);
+                saveQuotesToLocalStorage();
+                alert('Quotes imported successfully!');
+                showRandomQuote();
+            } else {
+                alert('Invalid JSON format.');
+            }
+        } catch (err) {
+            alert('Error reading file.');
+        }
+    };
+    fileReader.readAsText(event.target.files[0]);
+}
+
+window.onload = function() {
+    loadQuotesFromLocalStorage();
+    const lastQuote = sessionStorage.getItem('lastQuote');
+    if (lastQuote) {
+        const quote = JSON.parse(lastQuote);
+        const display = document.getElementById('quoteDisplay');
+        display.innerHTML = `"${quote.text}" - ${quote.category}`;
+    } else {
+        showRandomQuote();
+    }
+
+    document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+}
