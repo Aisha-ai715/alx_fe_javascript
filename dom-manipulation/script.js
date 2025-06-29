@@ -5,11 +5,10 @@ let Amazingquotes = [
 ];
 
 const SERVER_API = 'https://jsonplaceholder.typicode.com/posts';
-
 const display = document.getElementById('quoteDisplay');
 const notificationId = 'syncNotification';
 
-let latestServerData = null; 
+let latestServerData = null;
 
 function showRandomQuote(filteredQuotes = Amazingquotes) {
   if (filteredQuotes.length === 0) {
@@ -123,7 +122,7 @@ function showNotification(message, showResolve = false) {
     notif = document.createElement('div');
     notif.id = notificationId;
     notif.style =
-      'position: fixed; bottom: 20px; right: 20px; background: #ffeeba; border: 1px solid #f0ad4e; padding: 10px 15px; border-radius: 5px; font-weight: bold; z-index: 10000;';
+      'position: fixed; bottom: 20px; right: 20px; background: #d1ecf1; color: #0c5460; padding: 10px 15px; border: 1px solid #bee5eb; border-radius: 5px; font-weight: bold; z-index: 10000;';
     document.body.appendChild(notif);
   }
   notif.innerHTML = message;
@@ -136,6 +135,10 @@ function showNotification(message, showResolve = false) {
       notif.remove();
     };
     notif.appendChild(btn);
+  } else {
+    setTimeout(() => {
+      if (notif.parentNode) notif.parentNode.removeChild(notif);
+    }, 5000);
   }
 }
 
@@ -162,9 +165,11 @@ function syncQuotes(serverQuotes) {
   const serverStr = JSON.stringify(serverQuotes);
   if (localStr !== serverStr) {
     showNotification('New server data detected! Conflicts found.', true);
+  } else {
+    showNotification('Quotes synced with server!');
   }
 }
-a
+
 function applyServerData(serverQuotes) {
   Amazingquotes = serverQuotes;
   saveQuotesToLocalStorage();
@@ -184,7 +189,7 @@ async function syncQuotesPeriodically() {
         body: JSON.stringify({ title: quote.text, body: quote.category }),
       });
     } catch {
-      
+    
     }
   }
 }
