@@ -4,18 +4,19 @@ let Amazingquotes = [
   { text: 'The mind is everything. What you think you become', category: 'Mindfulness' }
 ];
 
+const SERVER_API = 'https://jsonplaceholder.typicode.com/posts'; 
+
+const display = document.getElementById('quoteDisplay');
+const notificationDivId = 'syncNotification'; 
+
 function showRandomQuote(filteredQuotes = Amazingquotes) {
   if (filteredQuotes.length === 0) {
-    document.getElementById('quoteDisplay').innerHTML = 'No quotes in this category.';
+    display.innerHTML = 'No quotes in this category.';
     return;
   }
-
   let randomIndex = Math.floor(Math.random() * filteredQuotes.length);
   let quote = filteredQuotes[randomIndex];
-
-  const display = document.getElementById('quoteDisplay');
   display.innerHTML = `"${quote.text}" - ${quote.category}`;
-
   sessionStorage.setItem('lastQuote', JSON.stringify(quote));
 }
 
@@ -24,14 +25,13 @@ function addQuote() {
   const categoryInput = document.getElementById('newQuoteCategory');
   const text = textInput.value.trim();
   const category = categoryInput.value.trim();
-
   if (text && category) {
     Amazingquotes.push({ text, category });
     saveQuotesToLocalStorage();
     populateCategories();
+    filterQuotes();
     textInput.value = '';
     categoryInput.value = '';
-    filterQuotes(); 
   } else {
     alert('Please enter both a quote and a category.');
   }
@@ -89,23 +89,81 @@ function populateCategories() {
     option.textContent = cat;
     categorySelect.appendChild(option);
   });
-
   const savedCategory = localStorage.getItem('selectedCategory');
-  if (savedCategory) {
-    categorySelect.value = savedCategory;
-  }
+  if (savedCategory) categorySelect.value = savedCategory;
 }
 
 function filterQuotes() {
   const selectedCategory = document.getElementById('categoryFilter').value;
-  localStorage.setItem('selectedCategory', selectedCategory); 
-
-  if (selectedCategory === 'all') {
-    showRandomQuote(Amazingquotes);
-  } else {
+  localStorage.setItem('selectedCategory', selectedCategory);
+  if (selectedCategory === 'all') showRandomQuote(Amazingquotes);
+  else {
     const filtered = Amazingquotes.filter(q => q.category === selectedCategory);
     showRandomQuote(filtered);
   }
+}
+
+function showNotification(message, withResolveButton = false) {
+  let notifDiv = document.getElementById(notificationDivId);
+  if (!notifDiv) {
+    notifDiv = document.createElement('div');
+    notifDiv.id = notificationDivId;
+    notifDiv.style = 'position: fixed; bottom: 10px; right: 10px; background: #f0f0f0; padding: 10px; border: 1px solid #333; z-index: 1000;';
+    document.body.appendChild(notifDiv);
+  }
+  notifDiv.innerHTML = message;
+  if (withResolveButton) {
+    const btn = document.createElement('button');
+    btn.textContent = 'Resolve Conflict';
+    btn.style.marginLeft = '10px';
+    btn.onclick = () => {
+      applyServerData(latestServerData);
+      notifDiv.remove();
+    };
+    notifDiv.appendChild(btn);
+  }
+}
+
+let latestServerData = null;
+
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(SERVER_API);
+    const data = await response.json();
+
+    const serverQuotes = data.slice(0, 10).map(item => ({
+      text: item.title || 'No text',
+      category: item.body ? item.body.substring(0, 15) : 'General'
+    }));
+
+    latestServerData = serverQuotes;
+
+    syncWithServerData(serverQuotes);
+  } catch (error) {
+    console.error('Failed to fetch from server:', error);
+  }
+}
+
+function syncWithServerData(serverQuotes) {
+  const localString = JSON.stringify(Amazingquotes);
+  const serverString = JSON.stringify(serverQuotes);
+
+  if (localString !== serverString) {
+    showNotification('New quotes available from server. Conflicts detected.', true);
+  }
+}
+
+function applyServerData(serverQuotes) {
+  Amazingquotes = serverQuotes;
+  saveQuotesToLocalStorage();
+  populateCategories();
+  filterQuotes();
+  showNotification('Server data applied successfully.');
+}
+
+function startPeriodicSync() {
+  fetchQuotesFromServer();
+  setInterval(fetchQuotesFromServer, 30000);
 }
 
 window.onload = function () {
@@ -115,20 +173,24 @@ window.onload = function () {
   const savedCategory = localStorage.getItem('selectedCategory');
   if (savedCategory) {
     document.getElementById('categoryFilter').value = savedCategory;
-    filterQuotes();
-  } else {
-    showRandomQuote();
   }
+
+  filterQuotes();
 
   const lastQuote = sessionStorage.getItem('lastQuote');
   if (lastQuote) {
-    const quote = JSON.parse(lastQuote);
-    const display = document.getElementById('quoteDisplay');
-    display.innerHTML = `"${quote.text}" - ${quote.category}`;
+    try {
+      const quote = JSON.parse(lastQuote);
+      display.innerHTML = `"${quote.text}" - ${quote.category}`;
+    } catch {
+      
+    }
   }
 
   document.getElementById('newQuote').addEventListener('click', filterQuotes);
   document.getElementById('exportBtn').addEventListener('click', exportToJsonFile);
   document.getElementById('importFile').addEventListener('change', importFromJsonFile);
   document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
+
+  startPeriodicSync();
 };
